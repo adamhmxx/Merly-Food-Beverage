@@ -142,9 +142,12 @@ main.with-composer{padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom
 .fab-ic{width:54px;height:54px;flex:0 0 auto;aspect-ratio:1;margin-top:-34px;border-radius:var(--r-full);background:var(--brand);display:grid;place-items:center;box-shadow:none;outline:0;border:0;transition:transform .45s cubic-bezier(.34,1.8,.5,1)}
 .tabbar a.fab .fab-ic svg{width:22px;height:22px;stroke:#fff;stroke-width:1.8}
 /* Line-drawing animation for every clickable icon: strokes are traced one after another, vector to vector */
-svg.drawing :is(path,line,circle,rect,polyline,polygon,ellipse){stroke-dasharray:1;animation:iconDraw var(--d,400ms) cubic-bezier(.45,0,.25,1) var(--dl,0ms) both}
+svg.drawing :is(path,line,circle,rect,polyline,polygon,ellipse){stroke-dasharray:1;animation:iconDraw var(--d,400ms) cubic-bezier(.65,0,.35,1) var(--dl,0ms) both}
 @keyframes iconDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-@media (prefers-reduced-motion:reduce){svg.drawing :is(path,line,circle,rect,polyline,polygon,ellipse){animation:none!important}}
+/* the whole icon pops in with a soft spring while its lines are drawn */
+svg.drawing{transform-box:fill-box;transform-origin:50% 50%;animation:iconPop var(--pop,900ms) linear both}
+@keyframes iconPop{0%{transform:scale(.82) rotate(-6deg)}30%{transform:scale(1.1) rotate(3deg)}50%{transform:scale(.97) rotate(-1.5deg)}68%{transform:scale(1.03) rotate(.6deg)}84%{transform:scale(.995)}100%{transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion:reduce){svg.drawing,svg.drawing :is(path,line,circle,rect,polyline,polygon,ellipse){animation:none!important}}
 .tabbar a.fab:focus-visible{outline:0}.tabbar a.fab:focus-visible .fab-ic{outline:2px solid var(--brand);outline-offset:2px}
 .tabbar a.fab:active .fab-ic{transform:scale(.94)}
 @media (hover:hover){.tabbar a.fab:hover .fab-ic{transform:translateY(-5px)}}
@@ -1446,8 +1449,10 @@ function prepIcon(svg) {
 function drawIcon(svg) {
   prepIcon(svg);
   const els = [...svg.querySelectorAll(ICON_SHAPES)], n = els.length || 1;
-  const total = Math.min(1500, 450 + n * 220), per = total / n;
-  els.forEach((e, i) => { e.style.setProperty("--d", per + "ms"); e.style.setProperty("--dl", i * per + "ms"); });
+  // strokes overlap a little (each starts before the previous one ends) so the line flows from vector to vector
+  const total = Math.min(1500, 500 + n * 220), step = total / (n + 0.6), dur = step * 1.6;
+  els.forEach((e, i) => { e.style.setProperty("--d", dur + "ms"); e.style.setProperty("--dl", i * step + "ms"); });
+  svg.style.setProperty("--pop", Math.max(800, total * 0.8) + "ms");
   svg.classList.remove("drawing"); void svg.getBoundingClientRect(); svg.classList.add("drawing");
 }
 const iconsIn = el => [...el.querySelectorAll("svg")].filter(v => !v.matches("[role=img]") && !v.closest("[role=img]"));
